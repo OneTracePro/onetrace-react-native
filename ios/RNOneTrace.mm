@@ -1,5 +1,9 @@
 #import "RNOneTrace.h"
 
+// The generated Swift header uses these frameworks; Objective-C++ does not import them by itself.
+#import <UIKit/UIKit.h>
+#import <UserNotifications/UserNotifications.h>
+
 #if __has_include(<onetrace_react_native/onetrace_react_native-Swift.h>)
 #import <onetrace_react_native/onetrace_react_native-Swift.h>
 #else
