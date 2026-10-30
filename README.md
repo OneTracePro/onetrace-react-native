@@ -14,7 +14,7 @@ The module is a thin TurboModule over the native SDKs, [OneTrace for Android](ht
 ## Installation
 
 ```bash
-npm install github:OneTracePro/onetrace-react-native
+npm install github:OneTracePro/onetrace-react-native#v1.0.0
 cd ios && pod install
 ```
 

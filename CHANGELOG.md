@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 — 2026-10-30
+## 1.0.0 — 2026-10-31
 
 - A TurboModule over the native OneTrace SDKs for Android and iOS: events, screens, identify, alias and reset; dates in properties become ISO 8601 strings, whole numbers stay whole.
 - Mobile push with @react-native-firebase/messaging or your own setup: tokens, permission changes, delivery receipts and taps (reported once, links opened).
