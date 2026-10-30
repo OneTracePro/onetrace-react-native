@@ -1,7 +1,6 @@
 import Foundation
-import OneTrace
 
-/// Calls of the TurboModule to the native OneTrace SDK, which is Swift-only.
+/// Calls of the TurboModule to OneTrace for iOS (compiled into this pod from ios/OneTraceSDK), which is Swift-only.
 @objc(RNOneTraceBridge)
 public final class RNOneTraceBridge: NSObject {
     @objc public static func setup(_ config: [String: Any]) {

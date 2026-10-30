@@ -13,20 +13,10 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => min_ios_version_supported }
   s.source       = { :git => "https://github.com/OneTracePro/onetrace-react-native.git", :tag => "v#{s.version}" }
 
+  # The module and the sources of OneTrace for iOS (ios/OneTraceSDK, see scripts/vendor-ios-sdk.sh).
   s.source_files = "ios/**/*.{h,m,mm,swift}"
   s.private_header_files = "ios/**/*.h"
   s.swift_version = "5.9"
 
   install_modules_dependencies(s)
-
-  # The native OneTrace SDK for iOS is a Swift package (React Native 0.75+ links Swift packages to pods).
-  unless defined?(spm_dependency)
-    raise "onetrace-react-native needs React Native 0.75 or newer"
-  end
-
-  spm_dependency(s,
-    url: "https://github.com/OneTracePro/onetrace-ios.git",
-    requirement: { kind: "branch", branch: "main" },
-    products: ["OneTrace"]
-  )
 end

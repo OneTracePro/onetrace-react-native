@@ -8,7 +8,7 @@ The React Native module of [OneTrace.pro](https://onetrace.pro), the customer da
 The module is a thin TurboModule over the native SDKs, [OneTrace for Android](https://github.com/OneTracePro/onetrace-android) and [OneTrace for iOS](https://github.com/OneTracePro/onetrace-ios): events are queued on disk and sent in batches by native code, and in-app messages are drawn natively over your React Native UI.
 
 - React Native 0.76+ with the New Architecture; Android 7.0+ (API 24), iOS 15.1+ (the React Native minimum).
-- The iOS SDK is a Swift package: the podspec links it with `spm_dependency` (React Native 0.75+), no extra Podfile lines.
+- The pod compiles the sources of the iOS SDK with the module (`ios/OneTraceSDK`, copied by `scripts/vendor-ios-sdk.sh` at a fixed version): no extra Podfile lines and no dynamic frameworks needed. From Swift in your app, `import onetrace_react_native` gives the iOS SDK API, for example `OneTrace.setPushToken(deviceToken)`.
 - Expo: works in a development build (`npx expo prebuild`), not in Expo Go.
 
 ## Installation

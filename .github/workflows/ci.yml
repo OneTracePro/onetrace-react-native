@@ -23,6 +23,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npx bob build
+      - name: The iOS SDK copy matches ios/OneTraceSDK/VERSION
+        run: scripts/vendor-ios-sdk.sh && git diff --exit-code -- ios/OneTraceSDK
 
   android:
     name: Android example build
@@ -43,7 +45,7 @@ jobs:
         run: ./gradlew --no-daemon assembleDebug -PreactNativeArchitectures=x86_64
 
   ios:
-    name: iOS example build (Swift package through spm_dependency)
+    name: iOS example build
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
