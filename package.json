@@ -1,0 +1,106 @@
+{
+  "name": "onetrace-react-native",
+  "version": "1.0.0",
+  "description": "OneTrace.pro customer data platform for React Native apps: events, screens, identities, mobile push and in-app messages through the native OneTrace SDKs for Android and iOS",
+  "main": "./lib/module/index.js",
+  "types": "./lib/typescript/src/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./lib/typescript/src/index.d.ts",
+      "default": "./lib/module/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "lib",
+    "android",
+    "ios",
+    "*.podspec",
+    "!ios/build",
+    "!android/build",
+    "!android/gradle",
+    "!android/gradlew",
+    "!android/gradlew.bat",
+    "!android/local.properties",
+    "!**/__tests__",
+    "!**/.*"
+  ],
+  "scripts": {
+    "prepare": "bob build",
+    "typecheck": "tsc",
+    "test": "jest",
+    "example": "npm --workspace onetrace-react-native-example run"
+  },
+  "keywords": [
+    "react-native",
+    "ios",
+    "android",
+    "analytics",
+    "cdp",
+    "push-notifications",
+    "in-app-messaging"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OneTracePro/onetrace-react-native.git"
+  },
+  "author": "OneTrace.pro <support@onetrace.pro> (https://onetrace.pro)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/OneTracePro/onetrace-react-native/issues"
+  },
+  "homepage": "https://github.com/OneTracePro/onetrace-react-native#readme",
+  "devDependencies": {
+    "@react-native/babel-preset": "0.88.1",
+    "@types/jest": "^30.0.0",
+    "@types/react": "^19.2.0",
+    "jest": "^30.5.2",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-builder-bob": "^0.44.1",
+    "typescript": "^6.0.3",
+    "@react-native/jest-preset": "0.88.1"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": ">=0.76"
+  },
+  "jest": {
+    "preset": "@react-native/jest-preset",
+    "modulePathIgnorePatterns": [
+      "<rootDir>/example/node_modules",
+      "<rootDir>/lib/"
+    ]
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  },
+  "codegenConfig": {
+    "name": "OneTraceSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "pro.onetrace.reactnative"
+    }
+  },
+  "workspaces": [
+    "example"
+  ]
+}

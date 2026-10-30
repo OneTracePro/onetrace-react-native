@@ -1,0 +1,48 @@
+/** The native OneTrace SDK for Android (JitPack: a release tag or a commit). */
+def oneTraceAndroid = "2d5c53e"
+
+ext.OneTrace = [
+  minSdkVersion: 24,
+  compileSdkVersion: 36
+]
+
+ext.getExtOrDefault = { prop ->
+  if (rootProject.ext.has(prop)) {
+    return rootProject.ext.get(prop)
+  }
+
+  return OneTrace[prop]
+}
+
+// The native SDK is published on JitPack: the app's projects resolve the module's dependencies too.
+rootProject.allprojects {
+  repositories {
+    maven {
+      url "https://jitpack.io"
+      content { includeGroupByRegex "com\\.github\\.OneTracePro.*" }
+    }
+  }
+}
+
+apply plugin: "com.android.library"
+
+if (project.extensions.findByName("kotlin") == null) {
+  apply plugin: "kotlin-android"
+}
+
+apply plugin: "com.facebook.react"
+
+android {
+  namespace "pro.onetrace.reactnative"
+
+  compileSdkVersion getExtOrDefault("compileSdkVersion")
+
+  defaultConfig {
+    minSdkVersion getExtOrDefault("minSdkVersion")
+  }
+}
+
+dependencies {
+  implementation "com.facebook.react:react-android"
+  implementation "com.github.OneTracePro.onetrace-android:onetrace:${oneTraceAndroid}"
+}
