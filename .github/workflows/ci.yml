@@ -59,5 +59,6 @@ jobs:
       - name: Build the example for the simulator
         working-directory: example/ios
         run: |
-          set -o pipefail
-          xcodebuild -workspace OneTraceExample.xcworkspace -scheme OneTraceExample -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build | tail -40
+          xcodebuild -workspace OneTraceExample.xcworkspace -scheme OneTraceExample -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build > build.log 2>&1 \
+            || { grep -B2 -A8 "error:" build.log | head -150; tail -20 build.log; exit 1; }
+          tail -5 build.log
