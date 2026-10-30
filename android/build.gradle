@@ -1,5 +1,5 @@
 /** The native OneTrace SDK for Android (JitPack: a release tag or a commit). */
-def oneTraceAndroid = "2d5c53e"
+def oneTraceAndroid = "1.0.0"
 
 ext.OneTrace = [
   minSdkVersion: 24,
