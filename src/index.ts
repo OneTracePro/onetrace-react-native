@@ -25,6 +25,11 @@ export type PushProvider = 'fcm' | 'apns';
 
 export type Properties = Record<string, unknown>;
 
+export type IdentityOptions = {
+  /** Signature of the user id from your server: HMAC-SHA256 of the user id with the project's signing key, hex. */
+  userHash?: string | null;
+};
+
 /** Version of this package, reported with every event. */
 export const VERSION = '1.0.0';
 
@@ -99,14 +104,21 @@ export const OneTrace = {
     NativeOneTrace.screen(name, values(properties));
   },
 
-  /** The user signed in or updated their data. Pass null as the user id to update traits of the current visitor. */
-  identify(userId: string | null, traits: Properties = {}): void {
-    NativeOneTrace.identify(userId, values(traits));
+  /**
+   * The user signed in or updated their data. Pass null as the user id to update traits of the current visitor.
+   *
+   * `userHash` is the signature of the user id: HMAC-SHA256 of `userId` with the project's signing key, in hex. Your
+   * server computes it after sign-in and returns it to the app; never put the signing key into the app. When the
+   * project requires the signature, a user id without it is ignored. The SDK keeps it with the user id and sends it
+   * with every event and the installation; a later `identify` of the same user without it keeps the stored one.
+   */
+  identify(userId: string | null, traits: Properties = {}, options: IdentityOptions = {}): void {
+    NativeOneTrace.identify(userId, values(traits), options.userHash ?? null);
   },
 
-  /** Links the current anonymous visitor to a new user id. */
-  alias(userId: string): void {
-    NativeOneTrace.alias(userId);
+  /** Links the current anonymous visitor to a new user id; `userHash` is its signature, as in `identify`. */
+  alias(userId: string, options: IdentityOptions = {}): void {
+    NativeOneTrace.alias(userId, options.userHash ?? null);
   },
 
   /** The user signed out: a new anonymous id, and the installation leaves the previous user's profile. */

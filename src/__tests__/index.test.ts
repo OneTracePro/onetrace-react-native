@@ -55,10 +55,16 @@ test('passes on only OneTrace notifications', () => {
 
 test('sends identities and push tokens', () => {
   OneTrace.identify('u-42', { email: 'anna@example.com' });
+  OneTrace.identify('u-42', {}, { userHash: 'a1b2' });
+  OneTrace.alias('u-43', { userHash: 'c3d4' });
   OneTrace.setPushToken('apns-token', 'apns');
   OneTrace.setPushToken('fcm-token');
 
-  expect(native.identify).toHaveBeenCalledWith('u-42', { email: 'anna@example.com' });
+  expect(native.identify!.mock.calls).toEqual([
+    ['u-42', { email: 'anna@example.com' }, null],
+    ['u-42', {}, 'a1b2'],
+  ]);
+  expect(native.alias).toHaveBeenCalledWith('u-43', 'c3d4');
   expect(native.setPushToken!.mock.calls).toEqual([
     ['apns-token', 'apns'],
     ['fcm-token', 'fcm'],

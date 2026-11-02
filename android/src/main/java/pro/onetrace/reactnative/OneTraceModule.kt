@@ -45,9 +45,9 @@ class OneTraceModule(reactContext: ReactApplicationContext) : NativeOneTraceSpec
 
     override fun screen(name: String, properties: ReadableMap) = OneTrace.screen(name, values(properties))
 
-    override fun identify(userId: String?, traits: ReadableMap) = OneTrace.identify(userId, values(traits))
+    override fun identify(userId: String?, traits: ReadableMap, userHash: String?) = OneTrace.identify(userId, values(traits), userHash)
 
-    override fun alias(userId: String) = OneTrace.alias(userId)
+    override fun alias(userId: String, userHash: String?) = OneTrace.alias(userId, userHash)
 
     override fun reset() = OneTrace.reset()
 

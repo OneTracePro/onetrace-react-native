@@ -28,14 +28,14 @@
   [RNOneTraceBridge screen:name properties:properties];
 }
 
-- (void)identify:(NSString *_Nullable)userId traits:(NSDictionary *)traits
+- (void)identify:(NSString *_Nullable)userId traits:(NSDictionary *)traits userHash:(NSString *_Nullable)userHash
 {
-  [RNOneTraceBridge identify:userId traits:traits];
+  [RNOneTraceBridge identify:userId traits:traits userHash:userHash];
 }
 
-- (void)alias:(NSString *)userId
+- (void)alias:(NSString *)userId userHash:(NSString *_Nullable)userHash
 {
-  [RNOneTraceBridge alias:userId];
+  [RNOneTraceBridge alias:userId userHash:userHash];
 }
 
 - (void)reset

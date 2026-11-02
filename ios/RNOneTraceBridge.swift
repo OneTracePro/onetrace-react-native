@@ -25,12 +25,12 @@ public final class RNOneTraceBridge: NSObject {
         OneTrace.screen(name, values(properties))
     }
 
-    @objc public static func identify(_ userId: String?, traits: [String: Any]) {
-        OneTrace.identify(userId, traits: values(traits))
+    @objc public static func identify(_ userId: String?, traits: [String: Any], userHash: String?) {
+        OneTrace.identify(userId, traits: values(traits), userHash: userHash)
     }
 
-    @objc public static func alias(_ userId: String) {
-        OneTrace.alias(userId)
+    @objc public static func alias(_ userId: String, userHash: String?) {
+        OneTrace.alias(userId, userHash: userHash)
     }
 
     @objc public static func reset() {

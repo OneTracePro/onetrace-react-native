@@ -5,8 +5,8 @@ export interface Spec extends TurboModule {
   setup(config: Object): void;
   track(event: string, properties: Object): void;
   screen(name: string, properties: Object): void;
-  identify(userId: string | null, traits: Object): void;
-  alias(userId: string): void;
+  identify(userId: string | null, traits: Object, userHash: string | null): void;
+  alias(userId: string, userHash: string | null): void;
   reset(): void;
   flush(): void;
   setPushToken(token: string | null, provider: string): void;
