@@ -54,6 +54,7 @@ function Shop() {
   const [product, setProduct] = useState<Product | null>(null);
   const [ids, setIds] = useState<{ userId: string | null; anonymousId: string | null; installationId: string | null }>({ userId: null, anonymousId: null, installationId: null });
   const [notice, setNotice] = useState('');
+  const [unread, setUnread] = useState(0);
 
   const refreshIds = async () => {
     const [userId, anonymousId, installationId] = await Promise.all([OneTrace.userId(), OneTrace.anonymousId(), OneTrace.installationId()]);
@@ -62,6 +63,11 @@ function Shop() {
 
   useEffect(() => {
     refreshIds();
+  }, []);
+
+  useEffect(() => {
+    const subscription = OneTrace.addFeedUnreadListener(setUnread);
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
@@ -114,6 +120,7 @@ function Shop() {
       ))}
       <View style={styles.buttons}>
         {ids.userId ? <Button title="Sign out" onPress={signOut} /> : <Button title="Sign in as Anna" onPress={signIn} primary />}
+        <Button title={unread > 0 ? `Updates (${unread})` : 'Updates'} onPress={() => OneTrace.openFeed()} />
         <Button title="Check in-app messages" onPress={() => OneTrace.fetchInAppMessages()} />
         <Button title="Send events now" onPress={() => OneTrace.flush()} />
       </View>

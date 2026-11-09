@@ -70,3 +70,103 @@ test('sends identities and push tokens', () => {
     ['fcm-token', 'fcm'],
   ]);
 });
+
+test('turns feed cards of the native SDKs into typed cards', async () => {
+  native.fetchFeed!.mockResolvedValueOnce([
+    {
+      token: 'f.1',
+      layout: 'banner',
+      title: 'Winter sale',
+      body: null,
+      imageUrl: 'https://cdn.example.com/sale.jpg',
+      buttonText: null,
+      buttonUrl: 'shopapp://sale',
+      pinned: true,
+      read: false,
+      createdAt: '2026-11-09T10:00:00.000Z',
+      expiresAt: null,
+      opensOnTap: true,
+    },
+    { token: 'f.2', layout: 'unknown', title: 'News', body: 'Read more', pinned: false, read: true, createdAt: 'not a date' },
+  ]);
+
+  const cards = await OneTrace.fetchFeed();
+
+  expect(cards).toEqual([
+    {
+      token: 'f.1',
+      layout: 'banner',
+      title: 'Winter sale',
+      body: null,
+      imageUrl: 'https://cdn.example.com/sale.jpg',
+      buttonText: null,
+      buttonUrl: 'shopapp://sale',
+      pinned: true,
+      read: false,
+      createdAt: new Date(Date.UTC(2026, 10, 9, 10)),
+      expiresAt: null,
+      opensOnTap: true,
+    },
+    {
+      token: 'f.2',
+      layout: 'classic',
+      title: 'News',
+      body: 'Read more',
+      imageUrl: null,
+      buttonText: null,
+      buttonUrl: null,
+      pinned: false,
+      read: true,
+      createdAt: null,
+      expiresAt: null,
+      opensOnTap: false,
+    },
+  ]);
+
+  OneTrace.feedCardShown(cards[0]!);
+  OneTrace.feedCardClicked('f.1');
+  OneTrace.feedCardDismissed(cards[1]!);
+  OneTrace.openFeed();
+  OneTrace.openFeed({ language: 'de' });
+
+  expect(native.feedCardShown).toHaveBeenCalledWith('f.1');
+  expect(native.feedCardClicked).toHaveBeenCalledWith('f.1');
+  expect(native.feedCardDismissed).toHaveBeenCalledWith('f.2');
+  expect(native.openFeed!.mock.calls).toEqual([[null], ['de']]);
+});
+
+test('runs the native unread observer while the app listens', () => {
+  const emitted: Array<(count: number) => void> = [];
+  const nativeSubscription = { remove: jest.fn() };
+  native.onFeedUnread!.mockImplementation((handler: (count: number) => void) => {
+    emitted.push(handler);
+
+    return nativeSubscription;
+  });
+
+  const badge = jest.fn();
+  const menu = jest.fn();
+  const first = OneTrace.addFeedUnreadListener(badge);
+  expect(native.startFeedUnread).toHaveBeenCalledTimes(1);
+
+  emitted[0]!(3);
+  const second = OneTrace.addFeedUnreadListener(menu);
+  expect(native.startFeedUnread).toHaveBeenCalledTimes(1);
+  expect(menu).toHaveBeenCalledWith(3);
+
+  emitted[0]!(1);
+  expect(badge.mock.calls).toEqual([[3], [1]]);
+  expect(menu.mock.calls).toEqual([[3], [1]]);
+
+  first.remove();
+  first.remove();
+  expect(native.stopFeedUnread).not.toHaveBeenCalled();
+
+  second.remove();
+  expect(native.stopFeedUnread).toHaveBeenCalledTimes(1);
+  expect(nativeSubscription.remove).toHaveBeenCalledTimes(1);
+
+  OneTrace.addFeedUnreadListener(badge).remove();
+  expect(native.startFeedUnread).toHaveBeenCalledTimes(2);
+  expect(native.stopFeedUnread).toHaveBeenCalledTimes(2);
+});

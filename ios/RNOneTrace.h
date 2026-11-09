@@ -1,5 +1,5 @@
 #import <OneTraceSpec/OneTraceSpec.h>
 
-@interface RNOneTrace : NSObject <NativeOneTraceSpec>
+@interface RNOneTrace : NativeOneTraceSpecBase <NativeOneTraceSpec>
 
 @end

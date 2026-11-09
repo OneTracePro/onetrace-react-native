@@ -1,4 +1,4 @@
-import { TurboModuleRegistry, type TurboModule } from 'react-native';
+import { TurboModuleRegistry, type CodegenTypes, type TurboModule } from 'react-native';
 
 /** The native module; use the `OneTrace` API from the package instead. */
 export interface Spec extends TurboModule {
@@ -18,6 +18,16 @@ export interface Spec extends TurboModule {
   anonymousId(): Promise<string | null>;
   userId(): Promise<string | null>;
   installationId(): Promise<string | null>;
+  fetchFeed(): Promise<Object[]>;
+  feedCards(): Promise<Object[]>;
+  feedUnreadCount(): Promise<number>;
+  startFeedUnread(): void;
+  stopFeedUnread(): void;
+  feedCardShown(token: string): void;
+  feedCardClicked(token: string): void;
+  feedCardDismissed(token: string): void;
+  openFeed(language: string | null): void;
+  readonly onFeedUnread: CodegenTypes.EventEmitter<number>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('OneTrace');

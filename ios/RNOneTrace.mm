@@ -93,6 +93,57 @@
   resolve([RNOneTraceBridge installationId]);
 }
 
+- (void)fetchFeed:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
+{
+  [RNOneTraceBridge fetchFeed:^(NSArray *cards) {
+    resolve(cards);
+  }];
+}
+
+- (void)feedCards:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
+{
+  resolve([RNOneTraceBridge feedCards]);
+}
+
+- (void)feedUnreadCount:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@([RNOneTraceBridge feedUnreadCount]));
+}
+
+- (void)startFeedUnread
+{
+  // After a reload the observer of the previous module instance stays until JavaScript listens again: weak, it is silent.
+  __weak RNOneTrace *weakSelf = self;
+  [RNOneTraceBridge startFeedUnread:^(NSInteger count) {
+    [weakSelf emitOnFeedUnread:@(count)];
+  }];
+}
+
+- (void)stopFeedUnread
+{
+  [RNOneTraceBridge stopFeedUnread];
+}
+
+- (void)feedCardShown:(NSString *)token
+{
+  [RNOneTraceBridge feedCardShown:token];
+}
+
+- (void)feedCardClicked:(NSString *)token
+{
+  [RNOneTraceBridge feedCardClicked:token];
+}
+
+- (void)feedCardDismissed:(NSString *)token
+{
+  [RNOneTraceBridge feedCardDismissed:token];
+}
+
+- (void)openFeed:(NSString *_Nullable)language
+{
+  [RNOneTraceBridge openFeed:language];
+}
+
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
     (const facebook::react::ObjCTurboModule::InitParams &)params
 {
