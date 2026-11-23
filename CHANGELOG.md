@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Stage 105, forwarding the new native calls: `OneTrace.remoteConfig` (`getString`, `getBoolean`, `getInt`, `getDouble`, `getJson`, `fetch`, `addListener`); `enableGeofences`, `disableGeofences`, `requestLocationPermission` and the `GeofenceStatus` type; `notificationOpened(data, actionId)`; `handlePush(data)` and the `richPush` setting (Android rich push); the `remoteConfigMinFetchIntervalSeconds` setting.
+- Native code comes from the `stage-105` branches until their release (mavenLocal on Android, a copy of a commit of the iOS branch); see the README.
+
 ## 1.2.0 — 2026-11-09
 
 - Message feed: `fetchFeed()` and `feedCards()` return the cards (token, layout, title, body, image, button, pinned, read, dates, `opensOnTap`); `addFeedUnreadListener` gives the unread count for a badge and runs the native observer while a listener is added; `feedCardShown`, `feedCardClicked` (opens the link like push links) and `feedCardDismissed` report by the card or its token.

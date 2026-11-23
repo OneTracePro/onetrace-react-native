@@ -13,7 +13,8 @@ public final class RNOneTraceBridge: NSObject {
             maxQueueSize: (config["maxQueueSize"] as? NSNumber)?.intValue ?? 1000,
             trackLifecycle: config["trackLifecycle"] as? Bool ?? true,
             openPushLinks: config["openPushLinks"] as? Bool ?? true,
-            debug: config["debug"] as? Bool ?? false
+            debug: config["debug"] as? Bool ?? false,
+            remoteConfigMinFetchInterval: (config["remoteConfigMinFetchIntervalSeconds"] as? NSNumber)?.doubleValue ?? 3600
         ))
 
         // A listener added before setup had no SDK to observe.
@@ -61,8 +62,74 @@ public final class RNOneTraceBridge: NSObject {
         OneTrace.handleNotificationReceived(data)
     }
 
-    @objc public static func notificationOpened(_ data: [String: Any]) {
-        OneTrace.handleNotificationOpen(data)
+    @objc public static func notificationOpened(_ data: [String: Any], actionId: String?) {
+        OneTrace.handleNotificationOpen(data, actionIdentifier: actionId)
+    }
+
+    /// Rich push is drawn by the Notification Service Extension on iOS: nothing to do here.
+    @objc public static func handlePush(_ data: [String: Any]) -> Bool {
+        false
+    }
+
+    /// The default of `getString` is optional for JavaScript: without a stored value the default comes back as it is.
+    @objc public static func remoteConfigGetString(_ key: String, defaultValue: String?) -> String? {
+        if let defaultValue = defaultValue { return OneTrace.remoteConfig.getString(key, defaultValue) }
+        return OneTrace.remoteConfig.all[key] == nil ? nil : OneTrace.remoteConfig.getString(key, "")
+    }
+
+    @objc public static func remoteConfigGetBool(_ key: String, defaultValue: Bool) -> Bool {
+        OneTrace.remoteConfig.getBoolean(key, defaultValue)
+    }
+
+    @objc public static func remoteConfigGetInt(_ key: String, defaultValue: Double) -> Double {
+        Double(OneTrace.remoteConfig.getLong(key, Int64(defaultValue)))
+    }
+
+    @objc public static func remoteConfigGetDouble(_ key: String, defaultValue: Double) -> Double {
+        OneTrace.remoteConfig.getDouble(key, defaultValue)
+    }
+
+    @objc public static func remoteConfigGetJson(_ key: String, defaultValue: String?) -> String? {
+        guard let value = OneTrace.remoteConfig.getJson(key),
+              JSONSerialization.isValidJSONObject(value),
+              let data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]) else {
+            return defaultValue
+        }
+        return String(data: data, encoding: .utf8) ?? defaultValue
+    }
+
+    @objc public static func remoteConfigFetch(_ completion: @escaping (Bool) -> Void) {
+        OneTrace.remoteConfig.fetch { completion($0) }
+    }
+
+    /// The Remote Config listener while JavaScript listens; only touched on the main thread.
+    private static var remoteConfigObservation: OneTraceObservation?
+
+    @objc public static func startRemoteConfigChanges(_ handler: @escaping ([String]) -> Void) {
+        DispatchQueue.main.async {
+            remoteConfigObservation?.cancel()
+            remoteConfigObservation = OneTrace.remoteConfig.addListener { handler(Array($0)) }
+        }
+    }
+
+    @objc public static func stopRemoteConfigChanges() {
+        DispatchQueue.main.async {
+            remoteConfigObservation?.cancel()
+            remoteConfigObservation = nil
+        }
+    }
+
+    @objc public static func enableGeofences() -> String {
+        OneTraceLocation.enableGeofences().rawValue
+    }
+
+    @objc public static func disableGeofences() {
+        OneTraceLocation.disableGeofences()
+    }
+
+    /// iOS runs both steps («While Using», then «Always») itself.
+    @objc public static func requestLocationPermission() {
+        OneTraceLocation.requestLocationPermission()
     }
 
     @objc public static func pauseInAppMessages(_ paused: Bool) {

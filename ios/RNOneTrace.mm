@@ -63,9 +63,90 @@
   [RNOneTraceBridge notificationReceived:data];
 }
 
-- (void)notificationOpened:(NSDictionary *)data
+- (void)notificationOpened:(NSDictionary *)data actionId:(NSString *_Nullable)actionId
 {
-  [RNOneTraceBridge notificationOpened:data];
+  [RNOneTraceBridge notificationOpened:data actionId:actionId];
+}
+
+- (void)handlePush:(NSDictionary *)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@([RNOneTraceBridge handlePush:data]));
+}
+
+- (void)remoteConfigGetString:(NSString *)key
+                 defaultValue:(NSString *_Nullable)defaultValue
+                      resolve:(RCTPromiseResolveBlock)resolve
+                       reject:(RCTPromiseRejectBlock)reject
+{
+  resolve([RNOneTraceBridge remoteConfigGetString:key defaultValue:defaultValue]);
+}
+
+- (void)remoteConfigGetBool:(NSString *)key
+               defaultValue:(BOOL)defaultValue
+                    resolve:(RCTPromiseResolveBlock)resolve
+                     reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@([RNOneTraceBridge remoteConfigGetBool:key defaultValue:defaultValue]));
+}
+
+- (void)remoteConfigGetInt:(NSString *)key
+              defaultValue:(double)defaultValue
+                   resolve:(RCTPromiseResolveBlock)resolve
+                    reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@([RNOneTraceBridge remoteConfigGetInt:key defaultValue:defaultValue]));
+}
+
+- (void)remoteConfigGetDouble:(NSString *)key
+                 defaultValue:(double)defaultValue
+                      resolve:(RCTPromiseResolveBlock)resolve
+                       reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@([RNOneTraceBridge remoteConfigGetDouble:key defaultValue:defaultValue]));
+}
+
+- (void)remoteConfigGetJson:(NSString *)key
+               defaultValue:(NSString *_Nullable)defaultValue
+                    resolve:(RCTPromiseResolveBlock)resolve
+                     reject:(RCTPromiseRejectBlock)reject
+{
+  resolve([RNOneTraceBridge remoteConfigGetJson:key defaultValue:defaultValue]);
+}
+
+- (void)remoteConfigFetch:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
+{
+  [RNOneTraceBridge remoteConfigFetch:^(BOOL success) {
+    resolve(@(success));
+  }];
+}
+
+- (void)startRemoteConfigChanges
+{
+  __weak RNOneTrace *weakSelf = self;
+  [RNOneTraceBridge startRemoteConfigChanges:^(NSArray<NSString *> *keys) {
+    [weakSelf emitOnRemoteConfigChanged:keys];
+  }];
+}
+
+- (void)stopRemoteConfigChanges
+{
+  [RNOneTraceBridge stopRemoteConfigChanges];
+}
+
+- (void)enableGeofences:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
+{
+  resolve([RNOneTraceBridge enableGeofences]);
+}
+
+- (void)disableGeofences
+{
+  [RNOneTraceBridge disableGeofences];
+}
+
+- (void)requestLocationPermission:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
+{
+  [RNOneTraceBridge requestLocationPermission];
+  resolve(@YES);
 }
 
 - (void)pauseInAppMessages:(BOOL)paused

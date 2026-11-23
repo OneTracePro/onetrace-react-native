@@ -13,6 +13,9 @@ import pro.onetrace.sdk.FeedCard
 import pro.onetrace.sdk.FeedUnreadListener
 import pro.onetrace.sdk.OneTrace
 import pro.onetrace.sdk.OneTraceConfig
+import pro.onetrace.sdk.RemoteConfigListener
+import pro.onetrace.sdk.location.GeofenceStatus
+import pro.onetrace.sdk.location.OneTraceLocation
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -36,6 +39,14 @@ class OneTraceModule(reactContext: ReactApplicationContext) : NativeOneTraceSpec
     @Volatile
     private var observingUnread = false
 
+    /** Passes the changed Remote Config keys to JavaScript while it listens (`startRemoteConfigChanges` … `stopRemoteConfigChanges`). */
+    private val remoteConfigChanged = RemoteConfigListener { keys ->
+        emitOnRemoteConfigChanged(Arguments.createArray().apply { keys.forEach { pushString(it) } })
+    }
+
+    @Volatile
+    private var observingRemoteConfig = false
+
     override fun setup(config: ReadableMap) {
         OneTrace.setWrapper(config.string("wrapper"), config.string("wrapperVersion"))
         OneTrace.init(
@@ -49,6 +60,8 @@ class OneTraceModule(reactContext: ReactApplicationContext) : NativeOneTraceSpec
                 trackLifecycle = config.flag("trackLifecycle") ?: true,
                 openPushLinks = config.flag("openPushLinks") ?: true,
                 debug = config.flag("debug") ?: false,
+                remoteConfigMinFetchIntervalSeconds = config.number("remoteConfigMinFetchIntervalSeconds")?.toLong() ?: 3600,
+                richPush = config.flag("richPush") ?: false,
             ),
         )
         reactApplicationContext.removeActivityEventListener(intents)
@@ -81,8 +94,43 @@ class OneTraceModule(reactContext: ReactApplicationContext) : NativeOneTraceSpec
 
     override fun notificationReceived(data: ReadableMap) = OneTrace.notificationReceived(strings(data))
 
-    override fun notificationOpened(data: ReadableMap) {
-        OneTrace.notificationOpened(reactApplicationContext.currentActivity ?: reactApplicationContext, strings(data))
+    override fun notificationOpened(data: ReadableMap, actionId: String?) {
+        OneTrace.notificationOpened(reactApplicationContext.currentActivity ?: reactApplicationContext, strings(data), actionId)
+    }
+
+    override fun handlePush(data: ReadableMap, promise: Promise) = promise.resolve(OneTrace.handlePushData(reactApplicationContext, strings(data)))
+
+    override fun remoteConfigGetString(key: String, defaultValue: String?, promise: Promise) = promise.resolve(OneTrace.remoteConfig.getString(key, defaultValue))
+
+    override fun remoteConfigGetBool(key: String, defaultValue: Boolean, promise: Promise) = promise.resolve(OneTrace.remoteConfig.getBoolean(key, defaultValue))
+
+    override fun remoteConfigGetInt(key: String, defaultValue: Double, promise: Promise) = promise.resolve(OneTrace.remoteConfig.getLong(key, defaultValue.toLong()).toDouble())
+
+    override fun remoteConfigGetDouble(key: String, defaultValue: Double, promise: Promise) = promise.resolve(OneTrace.remoteConfig.getDouble(key, defaultValue))
+
+    override fun remoteConfigGetJson(key: String, defaultValue: String?, promise: Promise) = promise.resolve(OneTrace.remoteConfig.getJson(key, defaultValue))
+
+    override fun remoteConfigFetch(promise: Promise) = OneTrace.remoteConfig.fetch { success -> promise.resolve(success) }
+
+    override fun startRemoteConfigChanges() {
+        observingRemoteConfig = true
+        OneTrace.remoteConfig.removeListener(remoteConfigChanged)
+        OneTrace.remoteConfig.addListener(remoteConfigChanged)
+    }
+
+    override fun stopRemoteConfigChanges() {
+        observingRemoteConfig = false
+        OneTrace.remoteConfig.removeListener(remoteConfigChanged)
+    }
+
+    override fun enableGeofences(promise: Promise) = promise.resolve(geofenceStatus(OneTraceLocation.enableGeofences(reactApplicationContext)))
+
+    override fun disableGeofences() = OneTraceLocation.disableGeofences(reactApplicationContext)
+
+    override fun requestLocationPermission(promise: Promise) {
+        val activity = reactApplicationContext.currentActivity ?: return promise.reject("no_activity", "There is no foreground activity to ask for the permission")
+
+        promise.resolve(OneTraceLocation.requestLocationPermission(activity))
     }
 
     override fun pauseInAppMessages(paused: Boolean) = OneTrace.pauseInAppMessages(paused)
@@ -127,11 +175,24 @@ class OneTraceModule(reactContext: ReactApplicationContext) : NativeOneTraceSpec
     override fun openFeed(language: String?) = OneTrace.openFeed(reactApplicationContext.currentActivity ?: reactApplicationContext)
 
     override fun invalidate() {
+        if (observingRemoteConfig) {
+            observingRemoteConfig = false
+            OneTrace.remoteConfig.removeListener(remoteConfigChanged)
+        }
         if (observingUnread) {
             observingUnread = false
             OneTrace.removeFeedUnreadListener(unread)
         }
         super.invalidate()
+    }
+
+    /** The name of the status in the TypeScript `GeofenceStatus`. */
+    private fun geofenceStatus(status: GeofenceStatus): String = when (status) {
+        GeofenceStatus.ENABLED -> "enabled"
+        GeofenceStatus.LOCATION_PERMISSION_MISSING -> "locationPermissionMissing"
+        GeofenceStatus.BACKGROUND_PERMISSION_MISSING -> "backgroundPermissionMissing"
+        GeofenceStatus.PLAY_SERVICES_UNAVAILABLE -> "playServicesUnavailable"
+        GeofenceStatus.NOT_INITIALIZED -> "notInitialized"
     }
 
     /** Reports go by token: the card is looked up in the feed the SDK holds. */

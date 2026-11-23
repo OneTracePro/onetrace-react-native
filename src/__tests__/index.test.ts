@@ -50,7 +50,95 @@ test('passes on only OneTrace notifications', () => {
   expect(native.notificationReceived).not.toHaveBeenCalled();
 
   expect(OneTrace.notificationOpened({ cdp_token: 'abc.def', cdp_url: 'shopapp://sale', badge: 2, empty: null })).toBe(true);
-  expect(native.notificationOpened).toHaveBeenCalledWith({ cdp_token: 'abc.def', cdp_url: 'shopapp://sale', badge: '2' });
+  expect(native.notificationOpened).toHaveBeenCalledWith({ cdp_token: 'abc.def', cdp_url: 'shopapp://sale', badge: '2' }, null);
+});
+
+test('passes the tapped button to the native SDK', () => {
+  expect(OneTrace.notificationOpened({ cdp_token: 'abc.def' }, 'snooze')).toBe(true);
+  expect(native.notificationOpened).toHaveBeenCalledWith({ cdp_token: 'abc.def' }, 'snooze');
+});
+
+test('hands push data to the native SDK to draw and tells whether it was OneTrace push', async () => {
+  expect(await OneTrace.handlePush({ title: 'Not ours' })).toBe(false);
+  expect(native.handlePush).not.toHaveBeenCalled();
+
+  native.handlePush!.mockResolvedValue(true);
+
+  expect(await OneTrace.handlePush({ cdp_token: 'abc.def', cdp_kind: 'carousel', n: 3 })).toBe(true);
+  expect(native.handlePush).toHaveBeenCalledWith({ cdp_token: 'abc.def', cdp_kind: 'carousel', n: '3' });
+});
+
+test('passes the rich push flag to the native SDK only when it is set', () => {
+  OneTrace.init({ writeKey: 'cdp_wk_test', host: 'https://crm.example.com', richPush: true, remoteConfigMinFetchIntervalSeconds: 600 });
+
+  expect(native.setup!.mock.calls[0]![0]).toMatchObject({ richPush: true, remoteConfigMinFetchIntervalSeconds: 600 });
+
+  OneTrace.init({ writeKey: 'cdp_wk_test', host: 'https://crm.example.com' });
+
+  expect(native.setup!.mock.calls[1]![0]).not.toHaveProperty('richPush');
+  expect(native.setup!.mock.calls[1]![0]).not.toHaveProperty('remoteConfigMinFetchIntervalSeconds');
+});
+
+test('Remote Config methods call the native ones with the same arguments', async () => {
+  native.remoteConfigGetString!.mockResolvedValue('blue');
+  native.remoteConfigGetBool!.mockResolvedValue(true);
+  native.remoteConfigGetInt!.mockResolvedValue(7);
+  native.remoteConfigGetDouble!.mockResolvedValue(1.5);
+  native.remoteConfigGetJson!.mockResolvedValue('{"a":1}');
+  native.remoteConfigFetch!.mockResolvedValue(true);
+
+  expect(await OneTrace.remoteConfig.getString('theme', 'red')).toBe('blue');
+  expect(await OneTrace.remoteConfig.getBoolean('promo', false)).toBe(true);
+  expect(await OneTrace.remoteConfig.getInt('limit', 1)).toBe(7);
+  expect(await OneTrace.remoteConfig.getDouble('ratio', 0.5)).toBe(1.5);
+  expect(await OneTrace.remoteConfig.getJson('menu', null)).toBe('{"a":1}');
+  expect(await OneTrace.remoteConfig.fetch()).toBe(true);
+
+  expect(native.remoteConfigGetString).toHaveBeenCalledWith('theme', 'red');
+  expect(native.remoteConfigGetBool).toHaveBeenCalledWith('promo', false);
+  expect(native.remoteConfigGetInt).toHaveBeenCalledWith('limit', 1);
+  expect(native.remoteConfigGetDouble).toHaveBeenCalledWith('ratio', 0.5);
+  expect(native.remoteConfigGetJson).toHaveBeenCalledWith('menu', null);
+  expect(native.remoteConfigFetch).toHaveBeenCalledTimes(1);
+});
+
+test('runs the native Remote Config listener while the app listens', () => {
+  const emitted: Array<(keys: string[]) => void> = [];
+  const nativeSubscription = { remove: jest.fn() };
+  native.onRemoteConfigChanged!.mockImplementation((handler: (keys: string[]) => void) => {
+    emitted.push(handler);
+
+    return nativeSubscription;
+  });
+
+  const first = jest.fn();
+  const second = jest.fn();
+  const one = OneTrace.remoteConfig.addListener(first);
+  const two = OneTrace.remoteConfig.addListener(second);
+  expect(native.startRemoteConfigChanges).toHaveBeenCalledTimes(1);
+
+  emitted[0]!(['theme', 'promo']);
+  expect(first).toHaveBeenCalledWith(['theme', 'promo']);
+  expect(second).toHaveBeenCalledWith(['theme', 'promo']);
+
+  one.remove();
+  expect(native.stopRemoteConfigChanges).not.toHaveBeenCalled();
+  two.remove();
+  expect(native.stopRemoteConfigChanges).toHaveBeenCalledTimes(1);
+  expect(nativeSubscription.remove).toHaveBeenCalledTimes(1);
+});
+
+test('geofence methods call the native ones', async () => {
+  native.enableGeofences!.mockResolvedValue('backgroundPermissionMissing');
+  native.requestLocationPermission!.mockResolvedValue(true);
+
+  expect(await OneTrace.enableGeofences()).toBe('backgroundPermissionMissing');
+  expect(await OneTrace.requestLocationPermission()).toBe(true);
+  OneTrace.disableGeofences();
+
+  expect(native.enableGeofences).toHaveBeenCalledTimes(1);
+  expect(native.requestLocationPermission).toHaveBeenCalledTimes(1);
+  expect(native.disableGeofences).toHaveBeenCalledTimes(1);
 });
 
 test('sends identities and push tokens', () => {

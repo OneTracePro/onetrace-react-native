@@ -19,7 +19,26 @@ export type OneTraceConfig = {
   openPushLinks?: boolean;
   /** Log what the SDK does (Logcat, Xcode console). */
   debug?: boolean;
+  /**
+   * Android: your app passes OneTrace push data to `OneTrace.handlePush` (carousel, timer, buttons, snooze); the
+   * installation then reports `rich` and `silent` and the server sends data-only messages. Leave it off without that
+   * handling. Ignored on iOS.
+   */
+  richPush?: boolean;
+  /** Remote Config is asked for at most this often (seconds); omitted keeps the native default (one hour). */
+  remoteConfigMinFetchIntervalSeconds?: number;
 };
+
+/** The result of `enableGeofences()`: anything but `enabled` is the reason the zones are not watched. */
+export type GeofenceStatus =
+  | 'enabled'
+  | 'locationPermissionMissing'
+  | 'backgroundPermissionMissing'
+  | 'playServicesUnavailable'
+  | 'notInitialized'
+  | 'needsAlwaysPermission'
+  | 'unavailable'
+  | 'notSetUp';
 
 /** Push provider of the token passed to `setPushToken`. */
 export type PushProvider = 'fcm' | 'apns';
@@ -193,6 +212,67 @@ function addFeedUnreadListener(listener: (count: number) => void): EventSubscrip
 }
 
 /** True when the data of a push message came from OneTrace. */
+const remoteConfigListeners = new Set<(keys: string[]) => void>();
+let remoteConfigSubscription: EventSubscription | null = null;
+
+function addRemoteConfigListener(listener: (keys: string[]) => void): EventSubscription {
+  const wrapped = (keys: string[]) => listener(keys);
+  remoteConfigListeners.add(wrapped);
+
+  if (remoteConfigSubscription === null) {
+    remoteConfigSubscription = NativeOneTrace.onRemoteConfigChanged((keys) => {
+      for (const each of [...remoteConfigListeners]) {
+        each(keys);
+      }
+    });
+    NativeOneTrace.startRemoteConfigChanges();
+  }
+
+  return {
+    remove() {
+      if (!remoteConfigListeners.delete(wrapped) || remoteConfigListeners.size > 0) {
+        return;
+      }
+
+      NativeOneTrace.stopRemoteConfigChanges();
+      remoteConfigSubscription?.remove();
+      remoteConfigSubscription = null;
+    },
+  };
+}
+
+/** App settings of OneTrace (Apps → Remote Config); every call goes to the native SDK. */
+const remoteConfig = {
+  getString(key: string, defaultValue: string | null): Promise<string | null> {
+    return NativeOneTrace.remoteConfigGetString(key, defaultValue);
+  },
+
+  getBoolean(key: string, defaultValue: boolean): Promise<boolean> {
+    return NativeOneTrace.remoteConfigGetBool(key, defaultValue);
+  },
+
+  getInt(key: string, defaultValue: number): Promise<number> {
+    return NativeOneTrace.remoteConfigGetInt(key, defaultValue);
+  },
+
+  getDouble(key: string, defaultValue: number): Promise<number> {
+    return NativeOneTrace.remoteConfigGetDouble(key, defaultValue);
+  },
+
+  /** A JSON value (object or array) as a string for `JSON.parse`. */
+  getJson(key: string, defaultValue: string | null): Promise<string | null> {
+    return NativeOneTrace.remoteConfigGetJson(key, defaultValue);
+  },
+
+  /** Asks the server for fresh values now; true when they were fetched. */
+  fetch(): Promise<boolean> {
+    return NativeOneTrace.remoteConfigFetch();
+  },
+
+  /** The keys that changed after a fetch; the native listener runs while at least one is added. */
+  addListener: addRemoteConfigListener,
+};
+
 function isOneTraceNotification(data: Record<string, unknown> | undefined | null): boolean {
   return typeof data?.cdp_token === 'string';
 }
@@ -267,14 +347,46 @@ export const OneTrace = {
    * A OneTrace notification was tapped, for example in `messaging().onNotificationOpenedApp`: the open is reported once
    * and its link opened. Returns false when the data is not from OneTrace.
    */
-  notificationOpened(data: Record<string, unknown> | undefined | null): boolean {
+  /** A tap on a notification or on one of its buttons; `actionId` is the id of the tapped button. */
+  notificationOpened(data: Record<string, unknown> | undefined | null, actionId?: string | null): boolean {
     if (!data || !isOneTraceNotification(data)) {
       return false;
     }
 
-    NativeOneTrace.notificationOpened(strings(data));
+    NativeOneTrace.notificationOpened(strings(data), actionId ?? null);
 
     return true;
+  },
+
+  /**
+   * Android: the native SDK draws OneTrace push data (carousel, timer, buttons, snooze); call it from your background
+   * handler and set `richPush`. Resolves true when the data is OneTrace push. Nothing is drawn on iOS.
+   */
+  async handlePush(data: Record<string, unknown> | undefined | null): Promise<boolean> {
+    if (!data || !isOneTraceNotification(data)) {
+      return false;
+    }
+
+    return NativeOneTrace.handlePush(strings(data));
+  },
+
+  remoteConfig,
+
+  /** Starts watching the geofences of the project; the location permission is yours to ask for. */
+  async enableGeofences(): Promise<GeofenceStatus> {
+    return (await NativeOneTrace.enableGeofences()) as GeofenceStatus;
+  },
+
+  disableGeofences(): void {
+    NativeOneTrace.disableGeofences();
+  },
+
+  /**
+   * Asks for the next missing location permission. Android: true when a prompt was shown, call it again after the
+   * answer for «Allow all the time». iOS: starts both steps and resolves true.
+   */
+  requestLocationPermission(): Promise<boolean> {
+    return NativeOneTrace.requestLocationPermission();
   },
 
   /**

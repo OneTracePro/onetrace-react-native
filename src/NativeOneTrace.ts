@@ -12,7 +12,19 @@ export interface Spec extends TurboModule {
   setPushToken(token: string | null, provider: string): void;
   notificationPermissionChanged(): void;
   notificationReceived(data: Object): void;
-  notificationOpened(data: Object): void;
+  notificationOpened(data: Object, actionId: string | null): void;
+  handlePush(data: Object): Promise<boolean>;
+  remoteConfigGetString(key: string, defaultValue: string | null): Promise<string | null>;
+  remoteConfigGetBool(key: string, defaultValue: boolean): Promise<boolean>;
+  remoteConfigGetInt(key: string, defaultValue: number): Promise<number>;
+  remoteConfigGetDouble(key: string, defaultValue: number): Promise<number>;
+  remoteConfigGetJson(key: string, defaultValue: string | null): Promise<string | null>;
+  remoteConfigFetch(): Promise<boolean>;
+  startRemoteConfigChanges(): void;
+  stopRemoteConfigChanges(): void;
+  enableGeofences(): Promise<string>;
+  disableGeofences(): void;
+  requestLocationPermission(): Promise<boolean>;
   pauseInAppMessages(paused: boolean): void;
   fetchInAppMessages(): void;
   anonymousId(): Promise<string | null>;
@@ -28,6 +40,7 @@ export interface Spec extends TurboModule {
   feedCardDismissed(token: string): void;
   openFeed(language: string | null): void;
   readonly onFeedUnread: CodegenTypes.EventEmitter<number>;
+  readonly onRemoteConfigChanged: CodegenTypes.EventEmitter<string[]>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('OneTrace');
