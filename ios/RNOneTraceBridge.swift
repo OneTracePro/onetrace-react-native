@@ -119,17 +119,31 @@ public final class RNOneTraceBridge: NSObject {
         }
     }
 
+    // Geofences come with the `onetrace-react-native/Location` subspec (ONETRACE_GEOFENCES): without it the pod does not
+    // compile the CoreLocation code, and the app needs no location purpose strings.
+
     @objc public static func enableGeofences() -> String {
-        OneTraceLocation.enableGeofences().rawValue
+        #if ONETRACE_GEOFENCES
+        return OneTraceLocation.enableGeofences().rawValue
+        #else
+        return "unavailable"
+        #endif
     }
 
     @objc public static func disableGeofences() {
+        #if ONETRACE_GEOFENCES
         OneTraceLocation.disableGeofences()
+        #endif
     }
 
-    /// iOS runs both steps («While Using», then «Always») itself.
-    @objc public static func requestLocationPermission() {
+    /// iOS runs both steps («While Using», then «Always») itself. False without the Location subspec.
+    @objc public static func requestLocationPermission() -> Bool {
+        #if ONETRACE_GEOFENCES
         OneTraceLocation.requestLocationPermission()
+        return true
+        #else
+        return false
+        #endif
     }
 
     @objc public static func pauseInAppMessages(_ paused: Bool) {

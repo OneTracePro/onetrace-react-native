@@ -68,6 +68,13 @@ test('hands push data to the native SDK to draw and tells whether it was OneTrac
   expect(native.handlePush).toHaveBeenCalledWith({ cdp_token: 'abc.def', cdp_kind: 'carousel', n: '3' });
 });
 
+test('hands the silent check without a token to the native SDK, which shows nothing', async () => {
+  native.handlePush!.mockResolvedValue(true);
+
+  expect(await OneTrace.handlePush({ cdp_kind: 'ping' })).toBe(true);
+  expect(native.handlePush).toHaveBeenCalledWith({ cdp_kind: 'ping' });
+});
+
 test('passes the rich push flag to the native SDK only when it is set', () => {
   OneTrace.init({ writeKey: 'cdp_wk_test', host: 'https://crm.example.com', richPush: true, remoteConfigMinFetchIntervalSeconds: 600 });
 

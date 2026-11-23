@@ -14,8 +14,6 @@ import pro.onetrace.sdk.FeedUnreadListener
 import pro.onetrace.sdk.OneTrace
 import pro.onetrace.sdk.OneTraceConfig
 import pro.onetrace.sdk.RemoteConfigListener
-import pro.onetrace.sdk.location.GeofenceStatus
-import pro.onetrace.sdk.location.OneTraceLocation
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -123,14 +121,22 @@ class OneTraceModule(reactContext: ReactApplicationContext) : NativeOneTraceSpec
         OneTrace.remoteConfig.removeListener(remoteConfigChanged)
     }
 
-    override fun enableGeofences(promise: Promise) = promise.resolve(geofenceStatus(OneTraceLocation.enableGeofences(reactApplicationContext)))
+    override fun enableGeofences(promise: Promise) = promise.resolve(if (GeofencingModule.linked) Geofencing.enable(reactApplicationContext) else "unavailable")
 
-    override fun disableGeofences() = OneTraceLocation.disableGeofences(reactApplicationContext)
+    override fun disableGeofences() {
+        if (GeofencingModule.linked) {
+            Geofencing.disable(reactApplicationContext)
+        }
+    }
 
     override fun requestLocationPermission(promise: Promise) {
+        if (!GeofencingModule.linked) {
+            return promise.resolve(false)
+        }
+
         val activity = reactApplicationContext.currentActivity ?: return promise.reject("no_activity", "There is no foreground activity to ask for the permission")
 
-        promise.resolve(OneTraceLocation.requestLocationPermission(activity))
+        promise.resolve(Geofencing.requestPermission(activity))
     }
 
     override fun pauseInAppMessages(paused: Boolean) = OneTrace.pauseInAppMessages(paused)
@@ -184,15 +190,6 @@ class OneTraceModule(reactContext: ReactApplicationContext) : NativeOneTraceSpec
             OneTrace.removeFeedUnreadListener(unread)
         }
         super.invalidate()
-    }
-
-    /** The name of the status in the TypeScript `GeofenceStatus`. */
-    private fun geofenceStatus(status: GeofenceStatus): String = when (status) {
-        GeofenceStatus.ENABLED -> "enabled"
-        GeofenceStatus.LOCATION_PERMISSION_MISSING -> "locationPermissionMissing"
-        GeofenceStatus.BACKGROUND_PERMISSION_MISSING -> "backgroundPermissionMissing"
-        GeofenceStatus.PLAY_SERVICES_UNAVAILABLE -> "playServicesUnavailable"
-        GeofenceStatus.NOT_INITIALIZED -> "notInitialized"
     }
 
     /** Reports go by token: the card is looked up in the feed the SDK holds. */

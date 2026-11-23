@@ -17,6 +17,9 @@ end
 target 'OneTraceExample' do
   config = use_native_modules!
 
+  # Geofences of the module (the Location subspec): CI compiles them too. An app without geofences leaves this out.
+  pod 'onetrace-react-native/Location', :path => '../..'
+
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.

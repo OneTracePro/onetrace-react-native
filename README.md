@@ -22,8 +22,8 @@ cd ios && pod install
 
 The features above (rich push, Remote Config, geofences) are in the `stage-105` branches of the native SDKs, which are not released yet:
 
-- Android: in `onetrace-android` (branch `stage-105`) run `./gradlew :onetrace:publishReleasePublicationToMavenLocal :onetrace-fcm:publishReleasePublicationToMavenLocal :onetrace-location:publishReleasePublicationToMavenLocal`; the module resolves `com.github.OneTracePro.onetrace-android:onetrace` and `onetrace-location` from `mavenLocal()` only (exclusive). The module now depends on `onetrace-location` (Google Play services location).
-- iOS: `ios/OneTraceSDK` is a copy of commit `b75dfff90e4330a68bf76c59fec665a863c825b5` of the `stage-105` branch (the `OneTrace`, `OneTracePush` and `OneTraceLocation` targets in one module, imports between them removed); `scripts/vendor-ios-sdk.sh <commit>` refreshes it, `ONETRACE_IOS_REPO=<path>` takes a local clone, and CI checks that the copy matches `ios/OneTraceSDK/VERSION`.
+- Android: `android/build.gradle` takes a commit of the `onetrace-android` branch `stage-105` from JitPack (`com.github.OneTracePro.onetrace-android:onetrace:<commit>`; JitPack builds it on the first request, a couple of minutes). For a local working copy run `./gradlew :onetrace:publishReleasePublicationToMavenLocal :onetrace-fcm:publishReleasePublicationToMavenLocal :onetrace-location:publishReleasePublicationToMavenLocal` there and set `onetrace.mavenLocal=true` in the app's `android/gradle.properties` (`onetrace.androidVersion` picks another version or commit).
+- iOS: `ios/OneTraceSDK` is a copy of commit `b975ee14f0823f078d26817ee56673908beee3d8` of the `stage-105` branch (the `OneTrace`, `OneTracePush` and `OneTraceLocation` targets in one module, imports between them removed; `OneTraceLocation` is compiled only with the `Location` subspec); `scripts/vendor-ios-sdk.sh <commit>` refreshes it, `ONETRACE_IOS_REPO=<path>` takes a local clone, and CI checks that the copy matches `ios/OneTraceSDK/VERSION`.
 
 After the native SDKs are released the module switches back to the JitPack tag and the iOS release tag.
 
@@ -124,14 +124,21 @@ In OneTrace add the **Mobile push** integration with your package name and bundl
 
 ### Rich push, buttons and the tapped button (stage 105, unreleased)
 
-Android: the native SDK draws OneTrace push (carousel, timer, buttons, snooze). Pass `richPush: true` to `OneTrace.init` and hand the data of every message to `OneTrace.handlePush(data)` from your background handler (it resolves false for other messages); only then the installation reports `rich` and `silent` and the server sends data-only messages. Without the flag the server sends the plain notification, as before.
+Android: the native SDK draws OneTrace push (carousel, timer, buttons, snooze) and Live Updates. Pass `richPush: true` to `OneTrace.init` and hand the data of every message to `OneTrace.handlePush(data)` — from the background handler and from `messaging().onMessage` while the app is open, since data-only messages are not shown by the system then (it resolves false for messages that are not OneTrace's, and true for the silent check, which shows nothing). Only then the installation reports `rich` and `silent` and the server sends data-only messages. Without the flag the server sends the plain notification, as before.
 
 ```js
 await OneTrace.init({ writeKey: '…', host: '…', richPush: true });
 messaging().setBackgroundMessageHandler(async (message) => {
   await OneTrace.handlePush(message.data);
 });
+messaging().onMessage(async (message) => {
+  if (!(await OneTrace.handlePush(message.data))) {
+    showYourOwnNotification(message); // not OneTrace's
+  }
+});
 ```
+
+On Android the `onMessage` handler replaces the `notificationReceived` call above: `handlePush` reports the delivery itself.
 
 iOS draws rich push in a Notification Service Extension and Notification Content Extension of the native SDK (see its README); `richPush` and `handlePush` do nothing there. A tap on a button is passed with its id: `OneTrace.notificationOpened(message.data, actionId)`. The same tap passed twice (the native delegate and your code) is reported once.
 
@@ -151,7 +158,34 @@ subscription.remove();
 
 ## Geofences
 
-Zones of **Apps → Geofences** produce `geofence_entered`, `geofence_dwelled` and `geofence_exited` events. The native SDK watches the nearest zones; the location permission is yours to ask for:
+Zones of **Apps → Geofences** produce `geofence_entered`, `geofence_dwelled` and `geofence_exited` events. The native SDK watches the nearest zones. Geofences are connected separately: an app without them gets no location permissions, no Google Play services Location and no CoreLocation code (no location purpose strings); `enableGeofences()` then resolves `'unavailable'`.
+
+**Android.** Add to `android/gradle.properties`:
+
+```properties
+onetrace.geofences=true
+```
+
+The native `onetrace-location` module then brings `ACCESS_FINE_LOCATION`, `ACCESS_BACKGROUND_LOCATION` and `RECEIVE_BOOT_COMPLETED` into the app manifest. Android starts the app in the background for a zone transition and after a restart of the phone, and JavaScript does not run then: start the native SDK in `MainApplication.onCreate()` with the same write key and host as `OneTrace.init` in JavaScript (which then only attaches to it):
+
+```kotlin
+// android/app/src/main/java/…/MainApplication.kt
+override fun onCreate() {
+    super.onCreate()
+    pro.onetrace.sdk.OneTrace.init(this, pro.onetrace.sdk.OneTraceConfig(writeKey = "cdp_wk_…", host = "https://crm.example.com", richPush = true))
+    // … the rest of the React Native template
+}
+```
+
+Without it a transition in the background waits until the app opens and is sent then with its time.
+
+**iOS.** Add the `Location` subspec to the `Podfile` next to the autolinked pod, and the `NSLocationWhenInUseUsageDescription` and `NSLocationAlwaysAndWhenInUseUsageDescription` strings to Info.plist:
+
+```ruby
+pod 'onetrace-react-native/Location', :path => '../node_modules/onetrace-react-native'
+```
+
+The location permission is yours to ask for:
 
 ```js
 await OneTrace.requestLocationPermission();      // Android: call again after the answer for «Allow all the time»
@@ -159,7 +193,7 @@ const status = await OneTrace.enableGeofences(); // 'enabled', or the reason it 
 OneTrace.disableGeofences();
 ```
 
-Android needs `ACCESS_FINE_LOCATION` (and `ACCESS_BACKGROUND_LOCATION`) in the app manifest; iOS needs the `NSLocationWhenInUseUsageDescription` and `NSLocationAlwaysAndWhenInUseUsageDescription` strings. Call `enableGeofences()` at app start too: iOS starts the app in the background for a zone event.
+Call `enableGeofences()` at every app start: iOS starts the app in the background for a zone event, and on Android it registers the zones again (for example after a reinstall).
 
 ## Live Activities (iOS)
 

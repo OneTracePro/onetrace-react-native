@@ -145,8 +145,7 @@
 
 - (void)requestLocationPermission:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
 {
-  [RNOneTraceBridge requestLocationPermission];
-  resolve(@YES);
+  resolve(@([RNOneTraceBridge requestLocationPermission]));
 }
 
 - (void)pauseInAppMessages:(BOOL)paused

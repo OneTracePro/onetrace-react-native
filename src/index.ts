@@ -29,7 +29,11 @@ export type OneTraceConfig = {
   remoteConfigMinFetchIntervalSeconds?: number;
 };
 
-/** The result of `enableGeofences()`: anything but `enabled` is the reason the zones are not watched. */
+/**
+ * The result of `enableGeofences()`: anything but `enabled` is the reason the zones are not watched. `unavailable`:
+ * geofences are not connected to the app (Android `onetrace.geofences=true`, iOS the `Location` subspec; see the
+ * README), or the iOS device cannot watch regions.
+ */
 export type GeofenceStatus =
   | 'enabled'
   | 'locationPermissionMissing'
@@ -359,11 +363,13 @@ export const OneTrace = {
   },
 
   /**
-   * Android: the native SDK draws OneTrace push data (carousel, timer, buttons, snooze); call it from your background
-   * handler and set `richPush`. Resolves true when the data is OneTrace push. Nothing is drawn on iOS.
+   * Android: the native SDK draws OneTrace push data (carousel, timer, buttons, snooze) and Live Updates, and takes the
+   * silent check (`cdp_kind: ping`, no token) without showing anything; call it from both `messaging().onMessage` (the
+   * app is open) and the background handler, and set `richPush`. Resolves true when the data is OneTrace push and is
+   * not yours to show. Nothing is drawn on iOS.
    */
   async handlePush(data: Record<string, unknown> | undefined | null): Promise<boolean> {
-    if (!data || !isOneTraceNotification(data)) {
+    if (!data || (!isOneTraceNotification(data) && typeof data.cdp_kind !== 'string')) {
       return false;
     }
 
