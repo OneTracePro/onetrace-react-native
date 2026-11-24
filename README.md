@@ -14,18 +14,9 @@ The module is a thin TurboModule over the native SDKs, [OneTrace for Android](ht
 ## Installation
 
 ```bash
-npm install github:OneTracePro/onetrace-react-native#v1.2.0
+npm install github:OneTracePro/onetrace-react-native#v1.3.0
 cd ios && pod install
 ```
-
-## Native code before the release (stage 105)
-
-The features above (rich push, Remote Config, geofences) are in the `stage-105` branches of the native SDKs, which are not released yet:
-
-- Android: `android/build.gradle` takes a commit of the `onetrace-android` branch `stage-105` from JitPack (`com.github.OneTracePro.onetrace-android:onetrace:<commit>`; JitPack builds it on the first request, a couple of minutes). For a local working copy run `./gradlew :onetrace:publishReleasePublicationToMavenLocal :onetrace-fcm:publishReleasePublicationToMavenLocal :onetrace-location:publishReleasePublicationToMavenLocal` there and set `onetrace.mavenLocal=true` in the app's `android/gradle.properties` (`onetrace.androidVersion` picks another version or commit).
-- iOS: `ios/OneTraceSDK` is a copy of commit `b975ee14f0823f078d26817ee56673908beee3d8` of the `stage-105` branch (the `OneTrace`, `OneTracePush` and `OneTraceLocation` targets in one module, imports between them removed; `OneTraceLocation` is compiled only with the `Location` subspec); `scripts/vendor-ios-sdk.sh <commit>` refreshes it, `ONETRACE_IOS_REPO=<path>` takes a local clone, and CI checks that the copy matches `ios/OneTraceSDK/VERSION`.
-
-After the native SDKs are released the module switches back to the JitPack tag and the iOS release tag.
 
 ## Quick start
 
@@ -122,7 +113,7 @@ A tap is reported once and its link (`cdp_url`, `myapp://…` or `https://…`) 
 
 In OneTrace add the **Mobile push** integration with your package name and bundle id: the Firebase service account for FCM and, for APNs tokens, the APNs key.
 
-### Rich push, buttons and the tapped button (stage 105, unreleased)
+### Rich push, buttons and the tapped button
 
 Android: the native SDK draws OneTrace push (carousel, timer, buttons, snooze) and Live Updates. Pass `richPush: true` to `OneTrace.init` and hand the data of every message to `OneTrace.handlePush(data)` — from the background handler and from `messaging().onMessage` while the app is open, since data-only messages are not shown by the system then (it resolves false for messages that are not OneTrace's, and true for the silent check, which shows nothing). Only then the installation reports `rich` and `silent` and the server sends data-only messages. Without the flag the server sends the plain notification, as before.
 

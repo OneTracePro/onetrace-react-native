@@ -1,11 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 — 2026-11-24
 
-- Stage 105, forwarding the new native calls: `OneTrace.remoteConfig` (`getString`, `getBoolean`, `getInt`, `getDouble`, `getJson`, `fetch`, `addListener`); `enableGeofences`, `disableGeofences`, `requestLocationPermission` and the `GeofenceStatus` type; `notificationOpened(data, actionId)`; `handlePush(data)` and the `richPush` setting (Android rich push); the `remoteConfigMinFetchIntervalSeconds` setting.
-- Native code comes from the `stage-105` branches until their release (a commit on JitPack on Android, mavenLocal with `onetrace.mavenLocal=true`; a copy of a commit of the iOS branch); see the README.
+- The new native calls: `OneTrace.remoteConfig` (`getString`, `getBoolean`, `getInt`, `getDouble`, `getJson`, `fetch`, `addListener`); `enableGeofences`, `disableGeofences`, `requestLocationPermission` and the `GeofenceStatus` type; `notificationOpened(data, actionId)`; `handlePush(data)` and the `richPush` setting (Android rich push); the `remoteConfigMinFetchIntervalSeconds` setting.
 - Geofences are connected separately: Android with `onetrace.geofences=true` in `gradle.properties`, iOS with the `onetrace-react-native/Location` subspec; without them the app gets no location permissions or CoreLocation code and `enableGeofences()` resolves `'unavailable'`. The native Android SDK is an `api` dependency, so `MainApplication` can start it for geofences in the background.
 - `handlePush` takes the silent check (`cdp_kind` without a token); the README passes data from `onMessage` too.
+- Native SDKs 1.3.0 (iOS SDK copy v1.3.0).
 
 ## 1.2.0 — 2026-11-09
 

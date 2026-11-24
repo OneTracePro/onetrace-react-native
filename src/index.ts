@@ -88,7 +88,7 @@ export type FeedScreenOptions = {
 };
 
 /** Version of this package, reported with every event. */
-export const VERSION = '1.2.0';
+export const VERSION = '1.3.0';
 
 /** Values the native SDKs take: dates become ISO 8601 strings in UTC, undefined becomes null. */
 function value(input: unknown): unknown {
